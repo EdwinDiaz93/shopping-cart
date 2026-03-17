@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "reset_token" ADD COLUMN     "expired_date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

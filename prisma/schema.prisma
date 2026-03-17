@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id          Int              @id @default(autoincrement())
+  name        String           @db.VarChar(50)
+  email       String           @unique()
+  password    String
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  roles       UserRol[]
+  resetTokens ResetToken[]
+  permissions UserPermission[]
+  session     session[]
+
+  @@map("users")
+}
+
+model Rol {
+  id          Int             @id @default(autoincrement())
+  name        String          @unique() @db.VarChar(50)
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  users       UserRol[]
+  permissions RolPermission[]
+
+  @@map("roles")
+}
+
+model UserRol {
+  rolId  Int @map("rol_id")
+  userId Int @map("user_id")
+
+  user      User     @relation(fields: [userId], references: [id])
+  rol       Rol      @relation(fields: [rolId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@id([rolId, userId])
+  @@map("user_rol")
+}
+
+model Permission {
+  id        Int              @id @default(autoincrement())
+  name      String           @unique() @db.VarChar(50)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+  roles     RolPermission[]
+  users     UserPermission[]
+
+  @@map("permissions")
+}
+
+model RolPermission {
+  permissionId Int        @map("permission_id")
+  rolId        Int        @map("rol_id")
+  rol          Rol        @relation(fields: [rolId], references: [id])
+  permission   Permission @relation(fields: [permissionId], references: [id])
+
+  @@id([rolId, permissionId])
+  @@map("rol_permission")
+}
+
+model UserPermission {
+  userId       Int        @map("user_id")
+  permissionId Int        @map("permission_id")
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  user         User       @relation(fields: [userId], references: [id])
+
+  @@id([userId, permissionId])
+  @@map("user_permission")
+}
+
+model ResetToken {
+  id          Int      @id @default(autoincrement())
+  token       String   @unique()
+  userId      Int      @map("user_id")
+  user        User     @relation(fields: [userId], references: [id])
+  expiresDate DateTime @default(now()) @map("expired_date")
+
+  @@map("reset_token")
+}
+
+model session {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  token      String
+  userAgent  String   @map("user_agent")
+  ip         String?
+  deviceName String?
+  expiresAt  DateTime @default(now()) @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt() @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@map("session")
+}

@@ -1,0 +1,35 @@
+services:
+  database:
+    image: postgres:16-alpine
+    container_name: es-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+
+  api:
+    build: .
+    container_name: nest-api
+    depends_on:
+      - database
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      PORT: ${PORT}
+      DATABASE_URL: ${DATABASE_URL}
+      GLOBAL_PREFIX: ${GLOBAL_PREFIX}
+      SWAGGER_TITLE: ${SWAGGER_TITLE}
+      SWAGGER_DESCRIPTION: ${SWAGGER_DESCRIPTION}
+      SWAGGER_VERSION: ${SWAGGER_VERSION}
+      AUTH_STRATEGY: ${AUTH_STRATEGY}
+      JWT_SECRET: ${JWT_SECRET}
+      EXPIRESIN: ${EXPIRESIN}
+      FRONT_WEB_URL: ${FRONT_WEB_URL}
+      SMTP_HOST: ${SMTP_HOST}
+      SMTP_USER: ${SMTP_USER}
+      SMTP_PASS: ${SMTP_PASS}
