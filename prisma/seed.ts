@@ -4,8 +4,8 @@ import { PrismaClient } from '../generated/prisma/client';
 import * as bcrypt from 'bcrypt';
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  // connectionString: 'postgres://postgres:postgres@localhost:5432/postgres',
+  // connectionString: process.env.DATABASE_URL,
+  connectionString: 'postgres://postgres:postgres@localhost:5432/postgres',
 });
 
 const adapter = new PrismaPg(pool);

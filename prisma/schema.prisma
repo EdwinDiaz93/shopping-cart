@@ -23,7 +23,9 @@ model User {
   roles       UserRol[]
   resetTokens ResetToken[]
   permissions UserPermission[]
-  session     session[]
+  session     Session[]
+  carts       Cart[]
+  orders      Order[]
 
   @@map("users")
 }
@@ -84,16 +86,16 @@ model UserPermission {
 }
 
 model ResetToken {
-  id          Int      @id @default(autoincrement())
-  token       String   @unique()
-  userId      Int      @map("user_id")
-  user        User     @relation(fields: [userId], references: [id])
-  expiresDate DateTime @default(now()) @map("expired_date")
+  id        Int      @id @default(autoincrement())
+  token     String   @unique()
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  expiresAt DateTime @default(now()) @map("expires_at")
 
   @@map("reset_token")
 }
 
-model session {
+model Session {
   id         Int      @id @default(autoincrement())
   userId     Int      @map("user_id")
   token      String
@@ -101,9 +103,152 @@ model session {
   ip         String?
   deviceName String?
   expiresAt  DateTime @default(now()) @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt() @map("updated_at")
-  user      User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt() @map("updated_at")
+  user       User     @relation(fields: [userId], references: [id])
 
   @@map("session")
+}
+
+model Category {
+  id        Int               @id @default(autoincrement())
+  name      String            @unique()
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt() @map("updated_at")
+  products  ProductCategory[]
+
+  @@map("categories")
+}
+
+model Brand {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique()
+  slug      String    @unique()
+  imageUrl  String?   @map("image_url")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt() @map("updated_at")
+  products  Product[]
+
+  @@map("brands")
+}
+
+model Product {
+  id               Int               @id @default(autoincrement())
+  name             String
+  price            Decimal           @db.Decimal(10, 2)
+  slug             String            @unique()
+  description      String?
+  shortDescription String?           @map("short_description")
+  stock            Int               @default(0)
+  sku              String?           @unique()
+  brandId          Int               @map("brand_id")
+  brand            Brand             @relation(fields: [brandId], references: [id])
+  isActive         Boolean           @default(true) @map("is_active")
+  isFeatured       Boolean           @default(false) @map("is_featured")
+  categories       ProductCategory[]
+  specifications   Specification[]
+  images           ProductImage[]
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt() @map("updated_at")
+  items            CartItem[]
+  orderItems       OrderItem[]
+
+  @@map("products")
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  productId Int      @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id])
+  url       String
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt() @map("updated_at")
+
+  @@map("product_images")
+}
+
+model ProductCategory {
+  productId  Int
+  categoryId Int
+  product    Product  @relation(fields: [productId], references: [id])
+  category   Category @relation(fields: [categoryId], references: [id])
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt() @map("updated_at")
+
+  @@id([productId, categoryId])
+  @@map("product_category")
+}
+
+model Specification {
+  id        Int      @id @default(autoincrement())
+  name      String
+  value     String
+  productId Int      @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt() @map("updated_at")
+
+  @@map("specifications")
+}
+
+model Cart {
+  id        Int        @id @default(autoincrement())
+  userId    Int        @map("user_id")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt() @map("updated_at")
+  user      User       @relation(fields: [userId], references: [id])
+  items     CartItem[]
+
+  @@map("carts")
+}
+
+model CartItem {
+  cartId    Int      @map("cart_id")
+  productId Int      @map("product_id")
+  product   Product  @relation(fields: [productId], references: [id])
+  cart      Cart     @relation(fields: [cartId], references: [id])
+  quantity  Int      @default(1)
+  unitPrice Decimal  @map("unit_price") @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt() @map("updated_at")
+
+  @@id([cartId, productId])
+  @@map("cart_items")
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+model Order {
+  id         Int         @id @default(autoincrement())
+  userId     Int         @map("user_id")
+  status     OrderStatus @default(PENDING)
+  total      Decimal     @db.Decimal(10, 2)
+  user       User        @relation(fields: [userId], references: [id])
+  orderItems OrderItem[]
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt() @map("updated_at")
+
+  @@map("orders")
+}
+
+model OrderItem {
+  orderId   Int      @map("order_id")
+  productId Int      @map("product_id")
+  order     Order    @relation(fields: [orderId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int      @default(1)
+  unitPrice Decimal  @map("unit_price") @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt() @map("updated_at")
+
+  @@id([orderId, productId])
+  @@map("order_items")
 }
