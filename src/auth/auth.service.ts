@@ -25,7 +25,7 @@ export class AuthService {
     private readonly prismaService: PrismaService,
     private readonly jwtService: JwtService,
     private readonly mailService: MailService,
-  ) {}
+  ) { }
   async login(headers: IncomingHttpHeaders, loginDto: LoginDto) {
     try {
       const user = await this.prismaService.user.findUnique({
@@ -39,48 +39,22 @@ export class AuthService {
         throw new UnauthorizedException(`Invalid Credentials`);
       const { password, ...restUser } = user;
 
-      // roles y permisos aqui
-
-      const roles = await this.prismaService.userRol.findMany({
-        where: { userId: user.id },
-        include: { rol: true },
-      });
-
-      const permissions = await this.prismaService.rolPermission.findMany({
-        where: { rolId: { in: roles.map((userRol) => userRol.rolId) } },
-        include: {
-          permission: true,
-        },
-      });
-      // fin roles y permisos
-      const access_token = await this.generateToken(
-        {
-          ...restUser,
-          roles: roles.map((userRol) => userRol.rol.name),
-          permissions: permissions.map(
-            (permission) => permission.permission.name,
-          ),
-        },
-        headers,
-        false,
-      );
-
-      const refresh_token = await this.generateToken(
-        {
-          ...restUser,
-          roles: roles.map((userRol) => userRol.rol.name),
-          permissions: permissions.map(
-            (permission) => permission.permission.name,
-          ),
-        },
-        headers,
-        true,
-      );
-
       return {
         ...restUser,
-        access_token,
-        refresh_token,
+        access_token: await this.generateToken(
+          {
+            ...restUser
+          },
+          headers,
+          false,
+        ),
+        refresh_token: await this.generateToken(
+          {
+            ...restUser,
+          },
+          headers,
+          true,
+        ),
       };
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -117,45 +91,27 @@ export class AuthService {
             userId: user.id,
           },
         });
-
-        const permissions = await tx.rolPermission.findMany({
-          where: {
-            rolId: defaultRol.id,
-          },
-          include: {
-            permission: true,
-          },
-        });
-
         return {
           user,
-          defaultRol,
-          permissions,
         };
       });
-      const access_token = await this.generateToken(
-        {
-          ...result.user,
-          roles: [result.defaultRol.name],
-          permissions: result.permissions.map((p) => p.permission.name),
-        },
-        headers,
-        false,
-      );
-
-      const refresh_token = await this.generateToken(
-        {
-          ...result.user,
-          roles: [result.defaultRol.name],
-          permissions: result.permissions.map((p) => p.permission.name),
-        },
-        headers,
-        true,
-      );
       return {
         ...result.user,
-        access_token,
-        refresh_token,
+        access_token: await this.generateToken(
+          {
+            ...result.user,
+
+          },
+          headers,
+          false,
+        ),
+        refresh_token: await this.generateToken(
+          {
+            ...result.user,
+          },
+          headers,
+          true,
+        ),
       };
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -197,12 +153,12 @@ export class AuthService {
 
       if (user) {
         const token = nanoid(64);
-        let expiresDate = new Date();
+        const expiresAt = new Date();
         // expira en una hora
-        expiresDate.setHours(expiresDate.getHours() + 1);
+        expiresAt.setHours(expiresAt.getHours() + 1);
 
         await this.prismaService.resetToken.create({
-          data: { userId: user.id, token, expiresDate },
+          data: { userId: user.id, token, expiresAt },
         });
         await this.mailService.sendEmail(user.email, token);
       }
@@ -220,7 +176,7 @@ export class AuthService {
       const resetToken = await this.prismaService.resetToken.findFirst({
         where: {
           token: resetPasswordDto.token,
-          expiresDate: { gt: new Date() },
+          expiresAt: { gt: new Date() },
         },
       });
       if (!resetToken) throw new BadRequestException('Token expires');
@@ -242,11 +198,19 @@ export class AuthService {
 
   async getProfile(user: JwtPayload) {
     try {
-      const userDb = await this.prismaService.user.findUnique({
-        where: { email: user?.email },
-        select: { email: true, name: true, createdAt: true, updatedAt: true },
-      });
-      return userDb;
+      const result = await this.prismaService.$transaction(async (tx) => {
+        const userDb = await this.prismaService.user.findUnique({
+          where: { email: user?.email },
+          select: { email: true, name: true, createdAt: true, updatedAt: true },
+        });
+        const roles = await this.prismaService.userRol.findMany({ where: { userId: user.id }, include: { rol: true } })
+
+        const permissionsDB = await this.prismaService.rolPermission.findMany({ where: { rolId: { in: roles.map(rol => rol.rolId) } }, include: { permission: true } })
+
+        return { ...userDb, roles: roles.map(rol => rol.rol.name), permissions: permissionsDB.map(per => per.permission.name) }
+      })
+
+      return result;
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw this.prismaService.handleDbError(error);

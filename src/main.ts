@@ -15,7 +15,7 @@ async function bootstrap() {
       },
     }),
   );
-
+  app.enableCors();
   const config = new DocumentBuilder()
     .setTitle(process.env.SWAGGER_TITLE!)
     .setDescription(process.env.SWAGGER_DESCRIPTION!)
