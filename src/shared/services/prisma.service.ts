@@ -20,4 +20,15 @@ export class PrismaService extends PrismaClient {
         );
     }
   }
+  slugify(text: string) {
+    return text
+      .toString()                           // Ensure it's a string
+      .normalize('NFD')                     // Separate accents from letters
+      .replace(/[\u0300-\u036f]/g, '')      // Remove the accent marks
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')                 // Replace spaces with -
+      .replace(/[^\w-]+/g, '')              // Remove all non-word chars
+      .replace(/--+/g, '-');                // Replace multiple - with single -
+  }
 }

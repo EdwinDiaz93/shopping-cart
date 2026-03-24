@@ -3,7 +3,7 @@ export interface JwtPayload {
   name: string;
   email: string;
   sessionId?: number;
-  
+
 }
 
 export enum ValidPermissions {
@@ -17,6 +17,10 @@ export enum ValidPermissions {
   rolesUpdate = 'roles.update',
   rolesAssign = 'roles.assign',
   permissionAssign = 'permissions.assign',
+  brandsCreate = 'brands.create',
+  brandsRead = 'brands.read',
+  brandsDelete = 'brands.delete',
+  brandsUpdate = 'brands.update',
 }
 
 export enum ValidRoles {

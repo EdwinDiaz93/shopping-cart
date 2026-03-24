@@ -24,6 +24,10 @@ async function main() {
     { name: 'roles.update' },
     { name: 'roles.assign' },
     { name: 'permissions.assign' },
+    { name: 'brands.create' },
+    { name: 'brands.read' },
+    { name: 'brands.delete' },
+    { name: 'brands.update' },
   ];
   const permissionsPromises = permissions.map((permission) =>
     prismaClient.permission.upsert({
@@ -86,7 +90,7 @@ async function main() {
       }),
     );
   await Promise.all(userRolPermissionPromises);
-  
+
   const adminUser = await prismaClient.user.upsert({
     where: { email: 'admin@example.com' },
     update: {},

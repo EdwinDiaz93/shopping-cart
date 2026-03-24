@@ -7,7 +7,7 @@ import { ValidRoles } from 'src/auth/interfaces';
 
 @Injectable()
 export class RolesService {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService) { }
   async create(createRoleDto: CreateRoleDto) {
     try {
       const rol = await this.prismaService.rol.create({
@@ -25,9 +25,6 @@ export class RolesService {
   async findAll(searchRolDto: SearchRolDto) {
     try {
       const roles = await this.prismaService.rol.findMany({
-        skip: searchRolDto.offset,
-        take: searchRolDto.limit,
-        ...(searchRolDto.filters && { where: { ...searchRolDto.filters } }),
         include: {
           permissions: {
             include: { permission: true },
