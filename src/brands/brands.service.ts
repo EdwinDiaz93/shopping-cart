@@ -60,7 +60,7 @@ export class BrandsService {
   async update(id: number, updateBrandDto: UpdateBrandDto) {
     try {
       const brandDb = await this.findOne(id);
-      this.prismaService.brand.update({ where: { id: brandDb.id }, data: { ...brandDb, ...updateBrandDto } })
+     await  this.prismaService.brand.update({ where: { id: brandDb.id }, data: { ...brandDb, ...updateBrandDto } })
       return { ok: true }
     } catch (error) {
       if (error instanceof HttpException) throw error
