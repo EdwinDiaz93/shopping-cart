@@ -47,7 +47,7 @@ export class AuthController {
     return this.authService.resetPasswordDto(resetPasswordDto);
   }
 
-  @Get('Profile')
+  @Get('profile')
   @Permission(ValidPermissions.usersRead)
   getProfileInfo(@User() user: JwtPayload) {
     return this.authService.getProfile(user);
